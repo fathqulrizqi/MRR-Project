@@ -97,69 +97,92 @@
     </script>
 
     <script>
-        $(document).ready(function () {
-            $(".category-icon").on("click", function (e) {
-                e.preventDefault();
+        const idMap = {
+            "productionIcon": 1,
+            "centralBuildingIcon": 2,
+            "frontOfficeIcon": 3
+        };
 
-                let roomID = $(this).attr("id");
-                let idMap = {
-                    "productionIcon": 1,
-                    "centralBuildingIcon": 2,
-                    "frontOfficeIcon": 3
-                };
+        function getDetailRooms(roomID) {
+            $.ajax({
+                url: "@Url.Action("GetRoomDetails", "MRR", new { area = "Other" })",
+                type: "POST",
+                data: { ID: roomID },
+                dataType: "json",
+                success: function (response) {
+                    console.log(response);
+                    if (response.data.length > 0) {
+                        let carouselInner = $(".carousel-inner");
+                        let propsHtml = "";
 
-                if (!idMap[roomID]) return;
+                        carouselInner.empty();
 
-                $.ajax({
-                    url: "@Url.Action("GetRoomDetails", "MRR", new { area = "Other" })",
-                    type: "post",
-                    data: { ID: idMap[roomID] },
-                    dataType: "json",
-                    success: function (response) {
-                        if (response.data.length > 0) {
-                            response.data.forEach(function (room) {
-                                console.log(room);
-                                $("#buildingName").text(room.RoomTitle);
-                                $("#roomID").val(room.ID);
-                                let carouselInner = $(".carousel-inner");
+                        response.data.forEach(function (room, index) {
+                            let activeClass = index === 0 ? "active" : "";
+                            carouselInner.append(`
+                                <div class="carousel-item ${activeClass}" data-room-title="${room.RoomTitle}">
+                                    <img alt="${room.Image}" id="imageresource"
+                                         src="/niterra-portal/Files/Other/MRR/Room/${room.Image}"
+                                         class="d-block w-100" height="200px" />
+                                </div>
+                            `);
+                        });
 
-                                carouselInner.html(`
-                                    <div class="carousel-item active">
-    <img alt="` + room.Image + `" id=\"imageresource\" src="/niterra-portal/Files/Other/MRR/Room/` + room.Image + `" height=\"200px\" />
-
-                                    </div>
-                                `);
+                        if (response.prop.length > 0) {
+                            response.prop.forEach(function (prop) {
+                                if (prop.RoomID === roomID) {
+                                    propsHtml += `<tr><td>${prop.PropsName}</td><td>${prop.Quantity}</td></tr>`;
+                                }
+                                console.log(prop);
 
                             });
-
-
-
-                            //$("#ImagesUrl").html(response.imageURL);
-
-                            // Update carousel
-
-
-                            // Update properti
-
-                        } else {
-                            carouselInner.html(`
-                                    <div class="carousel-item active">
-                                        <img id="imageresource" src="Files/Other/MRR/Room/C1.jpg" height="200px">
-                                    </div>
-                                `);
                         }
 
+                        $("#propertiesTableBody").html(propsHtml);
+                        $("#buildingName").text(response.data[0].RoomTitle);
 
-                    },
-                    error: function () {
-                        alert("Failed to fetch data.");
+                        let carousel = new bootstrap.Carousel(document.getElementById("carouselExampleFade"));
+                    } else {
+                        $(".carousel-inner").html(`
+                            <div class="carousel-item active">
+                                <img id="imageresource" src="Files/Other/MRR/Room/C1.jpg" class="d-block w-100" height="200px">
+                            </div>
+                        `);
                     }
-                });
+                },
+                error: function () {
+                    alert("Failed to fetch data.");
+                }
             });
+        }
+
+    $(document).ready(function () {
+
+        getDetailRooms(1);
+
+        $(".category-icon").on("click", function (e) {
+            e.preventDefault();
+
+            let roomID = $(this).attr("id");
+
+            if (!idMap[roomID]) return;
+            getDetailRooms(idMap[roomID]);
         });
+
+        $("#carouselExampleFade").on("slid.bs.carousel", function () {
+            let activeItem = $(".carousel-item.active");
+            let newBuildingName = activeItem.attr("data-room-title");
+            if (newBuildingName) {
+                $("#buildingName").text(newBuildingName);
+            }
+        });
+    });
     </script>
+
+
 }
 
+@*INFORMATION*@
 <div class="container-fluid">
     <h2 class="fw-bold text-body-emphasis">Meeting Room Reservation</h2>
 
